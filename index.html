@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Service Provider</title>
+    </head>
+    <body>
+        <div>
+            <h1>Annuaire</h1>
+            <input type="text" placeholder="Search" data-bind="value: searchText" />
+            <button data-bind="click: searchProviders">Search</button>
+            <button data-bind="click: listProviders">List</button>
+            <div data-bind="foreach: providers">
+                <div data-bind="text: $data"></div>
+            </div>
+        </div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.5.0/knockout-min.js"></script>
+        <script>
+            class ApiService {
+                list(callback) {
+                    fetch('http://localhost:3000')
+                    .then( function(response) {
+                        return response.json();
+                    })
+                    .then( function(data) {
+                        callback(data);
+                    });
+                }
+
+                search(callback, searchText) {
+                    fetch('http://localhost:3000/search', {
+                            method: "post",
+                            headers: {
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                text: searchText
+                            })
+                    })
+                    .then( function(response) {
+                        return response.json();
+                    })
+                    .then( function(data) {
+                        callback(data);
+                    });
+                }
+            }
+
+            class ViewModel {
+                searchText;
+                providers;
+                apiService;
+
+                constructor(apiService) {
+                    this.apiService = apiService;
+                    this.searchText = ko.observable('');
+                    this.providers = ko.observableArray([]);
+                }
+
+                displayProviders(data) {
+                    this.providers.removeAll();
+                    for(const element of data) {
+                        this.providers.push(Object.values(element).join(' - '));
+                    }
+                }
+
+                listProviders() {
+                    this.apiService.list((data) => {
+                        this.displayProviders(data);
+                    });
+                }
+
+                searchProviders() {
+                    this.apiService.search((data) => {
+                        this.displayProviders(data);
+                    }, this.searchText());
+                }
+            }   
+
+            (function() {
+                ko.applyBindings(new ViewModel(new ApiService()));
+            })();
+
+        </script>
+    </body>
+</html>
